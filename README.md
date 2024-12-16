@@ -4,8 +4,7 @@
 Uma biblioteca em Go para interagir com a API da UFU.
 
 <!-- badges -->
-<a href="https://pkg.go.dev/github.com/data-ru/ufutil" title="Go API Reference" rel="nofollow"><img src="https://img.shields.io/badge/go-documentação-blue.svg?style=for-the-badge" alt="Go API Reference"></a>
-<a href="https://github.com/data-ru/ufutil/releases/lastest" title="Latest Release" rel="nofollow"><img src="https://img.shields.io/github/v/release/data-ru/ufutil?include_prereleases&style=for-the-badge" alt="Latest Release"></a>
+<a href="https://pkg.go.dev/github.com/data-ru/gufu" title="Go API Reference" rel="nofollow"><img src="https://img.shields.io/badge/go-documentação-blue.svg?style=for-the-badge" alt="Go API Reference"></a>
 
 </div>
 
