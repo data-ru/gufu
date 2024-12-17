@@ -1,4 +1,4 @@
-module github.com/data-ru/ufutil
+module github.com/data-ru/gufu
 
 go 1.22.4
 
