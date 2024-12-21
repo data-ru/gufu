@@ -1,4 +1,4 @@
-package ufutil
+package gufu
 
 import (
 	"bytes"
@@ -16,9 +16,9 @@ var (
 	ClienteHTTP = http.Client{
 		Timeout: 15 * time.Second,
 	} //Cliente HTTP usado em todas as requsições, com timeout de 15 segundos. Pode ser alterado para atender necessidades específicas.
-	userAgent    = fmt.Sprintf("ufutil/v2.0.0 +(https://github.com/data-ru/ufutil; go/%v; %v/%v)", runtime.Version(), runtime.GOOS, runtime.GOARCH) //User-Agent padrão usado em todas as requisições. Se parece algo como: ufutil/v2.0.0 +(https://github.com/data-ru/ufutil; go/1.23.4; windows/amd64);
-	ssoUrl       = "https://sso.ufu.br"                                                                                                             //URL Base do SSO da UFU. Não deve ser alterado.
-	mobileApiUrl = "https://www.sistemas.ufu.br/mobile-gateway"                                                                                     //URL Base da API do aplicativo móvel da UFU.
+	userAgent    = fmt.Sprintf("gufu/v2.0.0 +(https://github.com/data-ru/gufu; go/%v; %v/%v)", runtime.Version(), runtime.GOOS, runtime.GOARCH) //User-Agent padrão usado em todas as requisições. Se parece algo como: gufu/v2.0.0 +(https://github.com/data-ru/gufu; go/1.23.4; windows/amd64);
+	ssoUrl       = "https://sso.ufu.br"                                                                                                         //URL Base do SSO da UFU. Não deve ser alterado.
+	mobileApiUrl = "https://www.sistemas.ufu.br/mobile-gateway"                                                                                 //URL Base da API do aplicativo móvel da UFU.
 )
 
 // DadosSSO é a estrutura que contém as informações do usuário autenticado no SSO. É retornado na função LoginViaSSO.

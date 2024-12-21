@@ -1,6 +1,6 @@
 <div align="center">
 
-# UFUtil
+# gufu
 Uma biblioteca em Go para interagir com a API da UFU.
 
 <!-- badges -->

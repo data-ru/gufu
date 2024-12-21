@@ -1,4 +1,4 @@
-package ufutil
+package gufu
 
 import (
 	"bytes"
