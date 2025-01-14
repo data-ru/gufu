@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -119,6 +121,181 @@ func LoginViaSSO(email, senha string) (*DadosSSO, error) {
 	informaçõesUsuario.Cookies = responseCreateLogin.Cookies()
 
 	return &informaçõesUsuario, nil
+}
+
+type DadosLoginMobile struct {
+	ResultType    string      `json:"resultType"`    //Descrição do tipo do resultado. Sempre "SUCCESS" se o login for bem sucedido.
+	ResultCode    string      `json:"resultCode"`    //Código do resultado. Sempre "s.0002" se o login for bem sucedido.
+	Nome          string      `json:"nome"`          //Nome do usuário.
+	Token         string      `json:"token"`         //Token de autenticação.
+	Perfis        []Perfis    `json:"perfis"`        //Perfis do usuário.
+	PerfilAtivo   PerfilAtivo `json:"perfilAtivo"`   //Perfil ativo do usuário.
+	Email         *string     `json:"email"`         //Email do usuário, pode ser nulo.
+	Avatar        string      `json:"avatar"`        //Avatar do usuário, em base64.
+	DataExpMillis int64       `json:"dataExpMillis"` //Data de expiração do token, Unix timestamp em milisegundos.
+}
+type Perfis struct {
+	IDPerfil       int    `json:"idPerfil"`       //ID do perfil
+	NomePerfil     string `json:"nomePerfil"`     //Nome do perfil
+	TipoPerfil     string `json:"tipoPerfil"`     //Tipo do perfil
+	NomeTipoPerfil string `json:"nomeTipoPerfil"` //Nome do tipo do perfil
+	Selecionado    bool   `json:"selecionado"`    //Se o perfil está selecionado
+}
+type PerfilAtivo struct {
+	IDPerfil       int    `json:"idPerfil"`       //ID do perfil
+	NomePerfil     string `json:"nomePerfil"`     //Nome do perfil
+	TipoPerfil     string `json:"tipoPerfil"`     //Tipo do perfil
+	NomeTipoPerfil string `json:"nomeTipoPerfil"` //Nome do tipo do perfil
+	Selecionado    bool   `json:"selecionado"`    //Se o perfil está selecionado
+}
+
+type ErrorMobile struct {
+	Timestamp int64  `json:"timestamp"` //Timestamp do erro
+	Status    int    `json:"status"`    //Status http do erro
+	Error     string `json:"error"`     //Tipo do erro
+	Exception string `json:"exception"` //Exceção do erro
+	Message   string `json:"message"`   //Mensagem do erro
+	Path      string `json:"path"`      //Caminho do erro
+}
+
+func LoginViaMobile(email, senha string) (*DadosLoginMobile, error) {
+	loginData, err := json.Marshal(map[string]string{
+		"login": email,
+		"senha": senha,
+		"uuid":  "00000000-0000-0000-0000-000000000000",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	authParams, err := Criptografar(string(loginData))
+	if err != nil {
+		return nil, err
+	}
+
+	reqLogin, err := http.NewRequest("POST", mobileApiUrl+"/autenticacao/autenticarV2", strings.NewReader(authParams))
+	reqLogin.Header.Add("Authorization", "Basic dXNlci1hdXRlbnRpY2FkbzpFNFlCY1BiZE1BVnJWVXdmRElvNUE=")
+	reqLogin.Header.Add("Content-Type", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	responseLogin, err := ClienteHTTP.Do(reqLogin)
+	if err != nil {
+		return nil, err
+	}
+
+	loginBody, err := io.ReadAll(responseLogin.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if responseLogin.StatusCode != 200 {
+		var errjson ErrorMobile
+		json.Unmarshal(loginBody, &errjson)
+		return nil, fmt.Errorf("algo deu errado ao receber a requisição: %v, status http: %v", errjson.Message, responseLogin.Status)
+	}
+
+	defer responseLogin.Body.Close()
+	respLogin, err := Descriptografar(string(loginBody))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao decriptografar login: %v", err)
+	}
+
+	var dadosDoLogin DadosLoginMobile
+	err = json.Unmarshal([]byte(respLogin), &dadosDoLogin)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao desserializar os dados do login: %v", err)
+	}
+
+	return &dadosDoLogin, nil
+}
+
+type requestMobileCarteirnha struct {
+	Body            string `json:"body"`
+	StatusCode      string `json:"statusCode"`
+	StatusCodeValue int    `json:"statusCodeValue"`
+}
+
+type IdentidadeDigital struct {
+	Situacao          string    `json:"situacao"`          //Situação da identidade digital, 3 = Ativa
+	Nome              string    `json:"nome"`              //Nome do aluno
+	Naturalidade      string    `json:"naturalidade"`      //Naturalidade do aluno
+	Informacao        string    `json:"informacao"`        //Curso, tipo de curso e turno (Ex: "Graduação em Sistemas de Informação: Bacharelado - Noturno")
+	CodigoBarra       string    `json:"codigoBarra"`       //Dado do QR Code da identidade digital
+	Foto              string    `json:"foto"`              //Foto em base64
+	Rg                string    `json:"rg"`                //RG do aluno
+	OrgaoEmissor      string    `json:"orgaoEmissor"`      //Órgão emissor do RG
+	Matricula         string    `json:"matricula"`         //Matrícula do aluno
+	Cpf               string    `json:"cpf"`               //CPF do aluno
+	NomePai           string    `json:"nomePai"`           //Nome do pai do aluno. Pode ser vazio
+	Vinculo           string    `json:"vinculo"`           //Vínculo (aluno, servidor, etc)
+	ID                string    `json:"id"`                //ID do aluno no sistema
+	DataNascimento    time.Time `json:"dataNascimento"`    //Data de nascimento do aluno,
+	NomeMae           string    `json:"nomeMae"`           //Nome da mãe do aluno.
+	SituacaoDescricao string    `json:"situacaoDescricao"` //Situação da identidade digital
+	DataValidade      time.Time `json:"dataValidade"`      //Data de validade do cartão
+}
+
+var ErrAlgoDeuErradoGenerico = errors.New("o servidor retornou uma resposta vazia")
+var ErrRespostaInvalidaServidor = errors.New("o servidor remoto nos enviou uma resposta invalida")
+
+func (d *DadosLoginMobile) BuscarIdentidadeDigital() (*IdentidadeDigital, error) {
+	dadosMobileJson, err := json.Marshal(map[string]string{
+		"token":     d.Token,
+		"currentId": strconv.Itoa(d.PerfilAtivo.IDPerfil),
+	})
+	if err != nil {
+		return nil, err
+	}
+	dadosParaBuscar, err := Criptografar(string(dadosMobileJson))
+	if err != nil {
+		return nil, err
+	}
+
+	reqId, err := http.NewRequest("POST", mobileApiUrl+"/identidade-digital/buscarByToken", strings.NewReader(dadosParaBuscar))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição: %v", err)
+	}
+	reqId.Header.Add("Authorization", "Basic dXNlci1lc3R1ZGFudGU6RXlIcWhQNU5EQ3lONGtDSGNZVUlh")
+	reqId.Header.Add("Content-Type", "application/json")
+
+	respId, err := ClienteHTTP.Do(reqId)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao enviar requisição: %v", err)
+	}
+
+	defer respId.Body.Close()
+
+	jsonCarteirinha, err := io.ReadAll(respId.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	decCarteirinha, _ := Descriptografar(string(jsonCarteirinha))
+	if decCarteirinha == "{}" {
+		return nil, ErrAlgoDeuErradoGenerico
+	}
+
+	log.Println(decCarteirinha)
+
+	var dadosCrus requestMobileCarteirnha
+	err = json.Unmarshal([]byte(decCarteirinha), &dadosCrus)
+	if err != nil {
+		return nil, ErrRespostaInvalidaServidor
+	}
+
+	if dadosCrus.StatusCodeValue != 200 {
+		return nil, errors.New("algo deu errado na api ao buscar o id digital")
+	}
+
+	var dadosCarteirinha IdentidadeDigital
+	err = json.Unmarshal([]byte(dadosCrus.Body), &dadosCarteirinha)
+	if err != nil {
+		return nil, ErrRespostaInvalidaServidor
+	}
+
+	return &dadosCarteirinha, nil
 }
 
 // A estrutura IdUfu contém as informações de uma identidade digital da UFU. É retornado na função ObterIdUfu.
@@ -334,7 +511,11 @@ func requisiçãoGenerica(url, meteodo string, corpo io.Reader) (*http.Response,
 	if err != nil {
 		return nil, err
 	}
-	//req.Header.Add("Accept", "application/json")
+	if corpo != nil {
+		req.Header.Add("Accept", "application/json")
+		req.Header.Add("Content-Type", "application/json")
+	}
+
 	req.Header.Add("User-Agent", userAgent)
 
 	res, err := ClienteHTTP.Do(req)

@@ -90,5 +90,5 @@ func criptografarRequestParams(req string) (string, error) {
 		return "", err
 	}
 	er := encryptedText + string(decodedSuffix) + p
-	return fmt.Sprintf(`{"requestParams":"%s"}`, er), nil
+	return fmt.Sprintf(`{"requestParams":"%v"}`, er), nil
 }
