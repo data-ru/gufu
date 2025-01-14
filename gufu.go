@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -276,8 +275,6 @@ func (d *DadosLoginMobile) BuscarIdentidadeDigital() (*IdentidadeDigital, error)
 	if decCarteirinha == "{}" {
 		return nil, ErrAlgoDeuErradoGenerico
 	}
-
-	log.Println(decCarteirinha)
 
 	var dadosCrus requestMobileCarteirnha
 	err = json.Unmarshal([]byte(decCarteirinha), &dadosCrus)
