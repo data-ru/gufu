@@ -464,7 +464,7 @@ func ObterCardapioPorCampus(campus string) (*Cardapio, error) {
 		return nil, errors.New("campus inválido")
 	}
 
-	resp, err := requisiçãoGenerica(fmt.Sprintf("%s/api/cardapios/%d", mobileApiUrl, campusID.ID), http.MethodGet, nil)
+	resp, err := requisiçãoGenerica(fmt.Sprintf("%s/api/cardapios/%v", mobileApiUrl, campusID.ID), http.MethodGet, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -483,13 +483,13 @@ func ObterCardapioPorCampus(campus string) (*Cardapio, error) {
 		return nil, ErrNãoHáRefeições
 	}
 
-	var cardapio Cardapio
+	var cardapio []Cardapio
 	err = json.Unmarshal([]byte(decryptBody), &cardapio)
 	if err != nil {
 		return nil, err
 	}
 
-	return &cardapio, nil
+	return &cardapio[0], nil
 }
 
 // A função Descriptografar descriptografa a respostas da API do aplicativo móvel da UFU. Retorna um JSON descriptografado e um erro.
