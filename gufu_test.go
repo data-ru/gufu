@@ -3,7 +3,6 @@ package gufu
 import (
 	"encoding/json"
 	"os"
-	"runtime/debug"
 	"testing"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -80,7 +79,6 @@ func TestCardapioFuturoCampiSantaMonica(t *testing.T) {
 func TestValidarId(t *testing.T) {
 	v, err := ObterIdUfu(os.Getenv("UFU_ID"))
 	if err != nil {
-		debug.PrintStack()
 		t.Fatal(err)
 	}
 	e, _ := json.Marshal(v)
@@ -98,7 +96,7 @@ func TestDescriptografar(t *testing.T) {
 }
 
 func TestCriptografar(t *testing.T) {
-	tc := ``
+	tc := `test`
 	v, err := Criptografar(tc)
 	if err != nil {
 		t.Fatal(err)
