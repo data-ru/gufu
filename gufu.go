@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/paemuri/brdoc"
 )
 
 var (
@@ -37,10 +39,21 @@ type DadosSSO struct {
 	Cookies       []*http.Cookie //Cookies da sessão
 }
 
+var (
+	ErrDadosLoginVazio          = errors.New("login ou senha estão vazios")
+	ErrCpfInvalido              = errors.New("cpf inválido")
+	ErrIdUfuTamanhoInvalido     = errors.New("tamanho do id ufu inválido")
+	ErrDadosLoginIncorretos     = errors.New("usuário ou senha estão incorretos")
+	ErrAlgoDeuErradoGenerico    = errors.New("o servidor retornou uma resposta vazia")
+	ErrRespostaInvalidaServidor = errors.New("o servidor remoto nos enviou uma resposta invalida")
+	ErrNãoHáRefeições           = errors.New("não há refeições agendadas para hoje") //Erro retornado quando não há refeições agendadas para hoje.
+	ErrCampusInvalido           = errors.New("campus inválido")
+)
+
 // LoginViaSSO é a função que realiza o login no sistema da UFU usando a api do SSO. Retorna um ponteiro para DadosSSO e um erro.
 func LoginViaSSO(email, senha string) (*DadosSSO, error) {
 	if email == "" || senha == "" {
-		return nil, errors.New("usuario ou senha estão vazios")
+		return nil, ErrDadosLoginVazio
 	}
 	dadosDoLogin, err := json.Marshal(map[string]string{
 		"uid":   email,
@@ -161,8 +174,6 @@ type ErrorMobile struct {
 	Path      string `json:"path"`      //Caminho do erro
 }
 
-var ErrDadosLoginIncorretos = errors.New("usuário ou senha estão incorretos")
-
 func LoginViaMobile(email, senha string) (*DadosLoginMobile, error) {
 	loginData, err := json.Marshal(map[string]string{
 		"login": email,
@@ -245,9 +256,6 @@ type IdentidadeDigital struct {
 	SituacaoDescricao string    `json:"situacaoDescricao"` //Situação da identidade digital
 	DataValidade      time.Time `json:"dataValidade"`      //Data de validade do cartão
 }
-
-var ErrAlgoDeuErradoGenerico = errors.New("o servidor retornou uma resposta vazia")
-var ErrRespostaInvalidaServidor = errors.New("o servidor remoto nos enviou uma resposta invalida")
 
 func (d *DadosLoginMobile) BuscarIdentidadeDigital() (*IdentidadeDigital, error) {
 	dadosMobileJson, err := json.Marshal(map[string]string{
@@ -335,6 +343,16 @@ type resultadoIdentidade struct {
 // ObterIdUfu é a função que obtém as informações de uma identidade digital da UFU. Retorna um ponteiro para IdUfu e um erro.
 // O parâmetro id é o número da identidade digital, presente no QR Code. Por exemplo, para o QR Code "https://www.sistemas.ufu.br/valida-ufu/#/id-digital/123123456789", o id é "123123456789".
 func ObterIdUfu(id string) (*IdUfu, error) {
+	if len(id) != 14 {
+		return nil, ErrIdUfuTamanhoInvalido
+	}
+
+	preVerificar := id[3:]
+	verificarCpf := brdoc.IsCPF(preVerificar)
+	if !verificarCpf {
+		return nil, ErrCpfInvalido
+	}
+
 	//Envia uma requisição GET para /buscarDadosIdDigital?idIdentidade=ID
 	res, err := requisiçãoGenerica("https://www.sistemas.ufu.br/valida-gateway/id-digital/buscarDadosIdDigital?idIdentidade="+id, http.MethodGet, nil)
 	if err != nil {
@@ -389,8 +407,6 @@ type Cardapio struct {
 	Nid               string `json:"nid"`                //ID interno do cardápio
 }
 
-var ErrNãoHáRefeições = errors.New("não há refeições agendadas para hoje") //Erro retornado quando não há refeições agendadas para hoje.
-
 // ObterTodosOsCardapios é a função que obtém todos os cardápios de refeições da UFU. Retorna um slice de Cardapio e um erro.
 func ObterTodosOsCardapios() ([]Cardapio, error) {
 	resp, err := requisiçãoGenerica(mobileApiUrl+"/api/cardapios/", http.MethodGet, nil)
@@ -437,7 +453,7 @@ var Campi = map[string]Campus{
 func ObterCardapiosFuturosPorCampus(campus string) ([]Cardapio, error) {
 	campusID, ok := Campi[campus]
 	if !ok {
-		return nil, errors.New("campus inválido")
+		return nil, ErrCampusInvalido
 	}
 
 	resp, err := requisiçãoGenerica(fmt.Sprintf("%s/api/proximos-cardapios/%d", mobileApiUrl, campusID.ID), http.MethodGet, nil)
@@ -471,7 +487,7 @@ func ObterCardapiosFuturosPorCampus(campus string) ([]Cardapio, error) {
 func ObterCardapioPorCampus(campus string) (*Cardapio, error) {
 	campusID, ok := Campi[campus]
 	if !ok {
-		return nil, errors.New("campus inválido")
+		return nil, ErrCampusInvalido
 	}
 
 	resp, err := requisiçãoGenerica(fmt.Sprintf("%s/api/cardapios/%v", mobileApiUrl, campusID.ID), http.MethodGet, nil)

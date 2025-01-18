@@ -1,4 +1,6 @@
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/paemuri/brdoc v1.1.2 h1:jl3opOVRVvVr+ubc9DpzENe/d1uuYLNac4V1h7Jul/c=
+github.com/paemuri/brdoc v1.1.2/go.mod h1:M0bbCy1qPGG0xou2ahCNXAntlkZ3Tl0w7NlC1v5fiZc=
 golang.org/x/crypto v0.24.0 h1:mnl8DM0o513X8fdIkmyFE/5hTYxbwYOjDS/+rK6qpRI=
 golang.org/x/crypto v0.24.0/go.mod h1:Z1PMYSOR5nyMcyAVAIQSKCDwalqy85Aqn1x3Ws4L5DM=
