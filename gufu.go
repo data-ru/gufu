@@ -73,6 +73,10 @@ func LoginViaSSO(email, senha string) (*DadosSSO, error) {
 	// /cliente-login?t=XXXXXXXXXXXX
 	responseCreateLoginBody := string(body)
 
+	if responseCreateLogin.StatusCode == 403 && responseCreateLoginBody == "Usuário e/ou senha inválidos!" {
+		return nil, ErrDadosLoginIncorretos
+	}
+
 	//Se for bem sucedido, o servidor retorna o status 201 com um JSON contendo a URL para obter as informações do usuário
 	if responseCreateLogin.StatusCode != 201 {
 		return nil, fmt.Errorf("algo deu errado, status http: %v, mensagem do servidor: %v", responseCreateLogin.StatusCode, responseCreateLoginBody)
@@ -157,6 +161,8 @@ type ErrorMobile struct {
 	Path      string `json:"path"`      //Caminho do erro
 }
 
+var ErrDadosLoginIncorretos = errors.New("usuário ou senha estão incorretos")
+
 func LoginViaMobile(email, senha string) (*DadosLoginMobile, error) {
 	loginData, err := json.Marshal(map[string]string{
 		"login": email,
@@ -205,6 +211,10 @@ func LoginViaMobile(email, senha string) (*DadosLoginMobile, error) {
 	err = json.Unmarshal([]byte(respLogin), &dadosDoLogin)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao desserializar os dados do login: %v", err)
+	}
+
+	if dadosDoLogin.ResultType == "ERROR" {
+		return nil, ErrDadosLoginIncorretos
 	}
 
 	return &dadosDoLogin, nil
